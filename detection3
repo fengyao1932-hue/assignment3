@@ -1,0 +1,41 @@
+import jetson.inference
+import jetson.utils
+import time
+
+net = jetson.inference.detectNet("ssd-mobilenet-v2", threshold=0.5)
+camera = jetson.utils.videoSource("/dev/video0")  
+display = jetson.utils.videoOutput("display://0")
+
+screenshot_path = "/home/nvidia/Desktop/my_images/capture.jpg"
+
+frame_count = 0
+
+while display.IsStreaming():
+    img = camera.Capture()
+    detections = net.Detect(img)
+
+    display.Render(img)
+    display.SetStatus(f"Object Detection | Network {net.GetNetworkFPS():.0f} FPS")
+
+    # -------------------------
+
+    frame_count += 1
+    if frame_count == 50:   
+        jetson.utils.saveImage(screenshot_path, img)
+        print(f"\n=== Detection Results for {screenshot_path} ===")
+        print(f"Number of objects detected: {len(detections)}")
+
+        for i, detection in enumerate(detections):
+            print(f"\n--- Object #{i+1} ---")
+            print(f"  ClassID: {detection.ClassID} ({net.GetClassDesc(detection.ClassID)})")
+            print(f"  Confidence: {detection.Confidence:.4f}")
+            print(f"  Left, Top: ({detection.Left:.2f}, {detection.Top:.2f})")
+            print(f"  Right, Bottom: ({detection.Right:.2f}, {detection.Bottom:.2f})")
+            print(f"  Width: {detection.Width:.2f}")
+            print(f"  Height: {detection.Height:.2f}")
+            print(f"  Area: {detection.Area:.2f}")
+            print(f"  Center: ({detection.CenterX:.2f}, {detection.CenterY:.2f})")
+
+        print("\nalready save")
+        break   
+ 
